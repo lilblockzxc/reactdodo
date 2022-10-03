@@ -1,76 +1,65 @@
-import { FC, useEffect, useRef, useState } from "react";
+import { FC, useCallback, useEffect, useRef } from "react";
 import { Categories } from "../components/Filters/Categories";
 import qs from "qs";
 import { Skeleton } from "../components/PizzaBlock/Skeleton";
 import { Index } from "../components/PizzaBlock";
 
 import { Pagination } from "../components/Pagination";
-import { useNavigate } from "react-router-dom";
-import { useDispatch, useSelector } from "react-redux";
-import { RootState } from "../redux/store";
+import { Link, useLocation, useNavigate } from "react-router-dom";
+import { useSelector } from "react-redux";
+import { RootState, useAppDispatch } from "../redux/store";
 import { setCategoryId, setFilters } from "../redux/filter/slice";
 import { Sortlist } from "../components/Filters/Sort";
 import Sort from "../components/Filters/Sort";
-import axios from "axios";
-import { setPizzas } from "../redux/pizza/slice";
-import { Pizza } from "../redux/pizza/types";
+import { fetchPizzas } from "../redux/pizza/asyncActionThunk";
 
 export const Home: FC = () => {
   const navigate = useNavigate();
   const { categoryId, sort, currentPage, searchValue } = useSelector(
     (state: RootState) => state.filter
   );
-  const sortType = sort.sortProperty;
+  const dispatch = useAppDispatch();
+
   const isSearch = useRef(false);
   const isMounted = useRef(false);
-  const dispatch = useDispatch();
-  const onChangeCategory = (id: number) => {
+
+  const onChangeCategory = useCallback((id: number) => {
     dispatch(setCategoryId(id));
-  };
+  }, []);
 
-  const items: Pizza[] = useSelector((state: RootState) => state.pizza.items);
+  const locate = useLocation();
 
-  const [isLoading, setIsLoading] = useState(true);
+  const { items, status } = useSelector((state: RootState) => state.pizza);
 
-  const category = categoryId > 0 ? `category=${categoryId}` : ``;
-  const order = sortType.includes("-") ? "abs" : "desc";
-  const sortBy = sortType.replace("-", "");
-  const search = searchValue ? `&search=${searchValue}` : ``;
+  const getPizzas = async () => {
+    const sortBy = sort.sortProperty.replace("-", "");
+    const order = sort.sortProperty.includes("-") ? "asc" : "desc";
+    const category = categoryId > 0 ? String(categoryId) : "";
+    const search = searchValue;
 
-  const url = `https://6310b74e36e6a2a04ef5c356.mockapi.io/items?page=${currentPage}&limit=4&${category}&sortBy=${sortBy}&order=${order}${search}`;
+    dispatch(
+      fetchPizzas({
+        sortBy,
+        order,
+        category,
+        search,
+        currentPage: String(currentPage),
+      })
+    );
 
-  const getPizzas = async (url: string) => {
-    try {
-      const { data } = await axios.get<Pizza[]>(url);
-      dispatch(setPizzas(data));
-    } catch (error) {
-      if (axios.isAxiosError(error)) {
-        console.log("error message: ", error.message);
-        return error.message;
-      } else {
-        console.log("unexpected error: ", error);
-        return "An unexpected error occurred";
-      }
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  //рисуем пицы
-  useEffect(() => {
     window.scrollTo(0, 0);
-    if (!isSearch.current) {
-      getPizzas(url);
-    }
-    setIsLoading(true);
-    isSearch.current = false;
-  }, [url]);
+  };
+
+  useEffect(() => {
+    getPizzas();
+  }, [categoryId, sort.sortProperty, searchValue, currentPage]);
 
   //ToDo исправить ошибку двойного рендеринга и неотрисовки пицц
   //Если был первый рендер, то проверяем параметры урла и сохраняем в редаксе
+
   useEffect(() => {
-    if (window.location.search) {
-      const params = qs.parse(window.location.search.substring(1));
+    if (locate.search) {
+      const params = qs.parse(locate.search.substring(1));
       const sort = Sortlist.find(
         (obj) => obj.sortProperty === params.sortProperty
       );
@@ -92,7 +81,7 @@ export const Home: FC = () => {
     isMounted.current = true;
   }, [categoryId, sort.sortProperty, currentPage, navigate]);
 
-  const pizzas = items.map((pizza) => <Index key={pizza.id} {...pizza} />);
+  const pizzas = items.map((pizza) => <Index {...pizza} key={pizza.id} />);
   const skeletons = [...new Array(10)].map((_, index) => (
     <Skeleton key={index} />
   ));
@@ -104,7 +93,19 @@ export const Home: FC = () => {
         <Sort />
       </div>
       <h2 className="content__title">Все пиццы</h2>
-      <div className="content__items">{isLoading ? skeletons : pizzas}</div>
+      {status === "error" ? (
+        <div className="content__error-info">
+          <h2>Произошла ошибка 😕</h2>
+          <p>
+            К сожалению, не удалось получить питсы. Попробуйте повторить попытку
+            позже.
+          </p>
+        </div>
+      ) : (
+        <div className="content__items">
+          {status === "loading" ? skeletons : pizzas}
+        </div>
+      )}
       <Pagination />
     </div>
   );

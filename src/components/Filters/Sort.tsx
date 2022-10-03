@@ -1,6 +1,7 @@
 import React, { FC, memo, useState, useRef, useEffect } from "react";
 
 import { useDispatch, useSelector } from "react-redux";
+import { useEvent } from "../../hooks/useEvent";
 import { setSort } from "../../redux/filter/slice";
 import { SortPropertyEnum } from "../../redux/filter/types";
 import { RootState } from "../../redux/store";
@@ -26,7 +27,7 @@ const Sort: FC = memo(() => {
   const onClickListItem = (obj: SortItem) => {
     dispatch(setSort(obj));
   };
-  const sortRef = useRef();
+  const sortRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {

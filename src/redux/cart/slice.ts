@@ -1,8 +1,13 @@
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
 import { calcTotalPrice } from "../../utils/calcTotalPrice";
+import { getCartFromStorage } from "../../utils/getCartFromStorage";
 import { CartItem, CartSliceState } from "./types";
 
-const initialState: CartSliceState = { totalPrice: 0, items: [] };
+const { totalPrice, items } = getCartFromStorage();
+const initialState: CartSliceState = {
+  totalPrice: totalPrice,
+  items: items,
+};
 
 const cartSlice = createSlice({
   name: "cart",

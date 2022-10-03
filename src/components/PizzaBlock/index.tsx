@@ -4,13 +4,15 @@ import { useSelector, useDispatch } from "react-redux";
 import { addItem } from "../../redux/cart/slice";
 import { selectCartItemById } from "../../redux/cart/selectors";
 import { Pizza } from "../../redux/pizza/types";
+import { Link } from "react-router-dom";
+
 const typeNames: string[] = ["Традиционное", "Тонкое"];
 
 export const Index: FC<Pizza> = memo(
   ({ id, title, price, imageUrl, sizes, types }) => {
     const [ActiveType, setActiveType] = useState<number>(0);
     const [ActiveSize, setActiveSize] = useState<number>(0);
-    //const { items } = useSelector((state: RootState) => state.cart);
+
     const dispatch = useDispatch();
     const cartItem = useSelector(selectCartItemById(id));
 
@@ -22,7 +24,7 @@ export const Index: FC<Pizza> = memo(
         price,
         imageUrl,
         type: typeNames[ActiveType],
-        size: ActiveSize,
+        size: sizes[ActiveSize],
       };
       dispatch(addItem(item));
     };
@@ -30,8 +32,10 @@ export const Index: FC<Pizza> = memo(
     return (
       <div className="pizza-block-wrapper">
         <div className="pizza-block">
-          <img className="pizza-block__image" src={imageUrl} alt="Pizza" />
-          <h4 className="pizza-block__title">{title}</h4>
+          <Link to={`/pizza/${id}`}>
+            <img className="pizza-block__image" src={imageUrl} alt="Pizza" />
+            <h4 className="pizza-block__title">{title}</h4>
+          </Link>
           <div className="pizza-block__selector">
             <ul>
               {types.map((typeId: number, index: number) => (
@@ -64,7 +68,7 @@ export const Index: FC<Pizza> = memo(
             <div className="pizza-block__price">от {price}₽</div>
             <button
               onClick={() => onClickAdd()}
-              className="button button--outline button--add"
+              className={"button button--outline button--add"}
             >
               <svg
                 width="12"
